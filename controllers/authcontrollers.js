@@ -26,7 +26,8 @@ const register = async(req, res) => {
   const storeCredentials = await db.query("INSERT INTO users (phone_no, password) VALUES ($1, $2) RETURNING *", [phone_no, hashedPassword]);
 
   console.log(`phone_no and password stored in db: ${storeCredentials}`); // Debugging
-  res.status(200).json({ message: `registered successfully`})
+  // res.status(200).json({ message: `registered successfully`})
+  res.render("login.ejs");
 }catch(err){
   console.log(`error registering: ${err}`)
   res.status(404).json({ message: `something went wrong`})
@@ -61,7 +62,8 @@ const sendOTP = async(req, res) => {
   })
   //sending otp to phone_no
   console.log(`OTP sent to ${phone_no}: ${otp}`)
-  res.status(200).json({ message: `opt sent successfully`})
+  // res.status(200).json({ message: `opt sent successfully`})
+  res.render("verify.ejs");
 }
 
 //Verify OTP
@@ -69,16 +71,18 @@ const verifyOTP = async(req, res) => {
   try{
     
   //user ke pass se otp lena
-  const { phone_no, userOTP } = req.body;
+  const { userOTP } = req.body;
 
   //Debug otp and mobile no
-  console.log(`users No. ${phone_no}`);
+  // console.log(`users No. ${phone_no}`);
   console.log(`users OTP. ${userOTP}`);
 
-  const user = await db.query("SELECT * FROM users WHERE phone_no = $1", [phone_no]);
+  // const user = await db.query("SELECT * FROM users WHERE phone_no = $1", [phone_no]);
   
-  console.log("retreiveing data from database")
-  console.log(`user data: ${user}`);
+  const user = await db.query("SELECT * FROM users WHERE otp = $1", [otp]);
+
+  // console.log("retreiveing data from database")
+  // console.log(`user data: ${user}`);
 
   const userDbData = user.rows[0];
   console.log(`userDbData: ${userDbData}`);
@@ -101,7 +105,8 @@ const verifyOTP = async(req, res) => {
  const isMatch = await bcrypt.compare(userOTP, storedOTP)
  if(isMatch){
   console.log(`otp matched`);
-  res.status(200).json({ message: `otp verified`})
+  // res.status(200).json({ message: `otp verified`})
+  res.send("login successful");
  }else{
   res.status(404).json({ message: `Invalid otp`})
  }
@@ -134,10 +139,12 @@ const login = async(req, res) => {
   const isMatch = await bcrypt.compare(password, storedPassword);
   console.log(`password matched`);
   if(isMatch){
-    res.status(200).json({ message: `login successful`})
+    // res.status(200).json({ message: `login successful`})
+    res.render("otp.ejs");
   }else{
     res.status(404).json({ message: `Invalid password`})
   }
+  
 }
 
 export { register, sendOTP, verifyOTP, login };

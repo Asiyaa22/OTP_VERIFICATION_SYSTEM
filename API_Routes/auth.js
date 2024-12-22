@@ -12,4 +12,8 @@ router.post("/send-otp", sendOTP);
 router.post("/verify-otp", verifyOTP);
 router.post("/login", login);
 
+// app.listen(3000, () => {
+//     console.log(`Server is running on port ${port}`)
+// })
+
 export { router };
