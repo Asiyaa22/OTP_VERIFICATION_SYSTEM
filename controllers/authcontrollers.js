@@ -13,6 +13,7 @@ const db = new pg.Client({
 });
 db.connect();
 
+
 //register
 const register = async(req, res) => {
   try{
@@ -69,6 +70,7 @@ const sendOTP = async(req, res) => {
 //Verify OTP
 const verifyOTP = async(req, res) => {
   try{
+    console.log("Entering try block")
     
   //user ke pass se otp lena
   const { phone_no, userOTP } = req.body;
@@ -115,8 +117,13 @@ const verifyOTP = async(req, res) => {
   `;
   await db.query(updateDb, ['Y', phone_no]);
   // await db.query("UPDATE users SET login_status = $1 WHERE phone_no = $2", [true, phone_no]);
-  
-  return res.render("home.ejs");;
+  // If OTP is valid:
+  req.session.userID = phone_no; // Store user ID in session
+  req.session.isLoggedIn = true; // Set login status in session
+  console.log('Session data:', req.session);
+
+  // res.json({ message: 'Login successful!' });
+  return res.render("home.ejs");
  }else{
   return res.status(404).json({ message: `Invalid otp`});
  }
@@ -131,6 +138,7 @@ function, the code inside the `catch` block will be executed. */
 
 //login
 const login = async(req, res) => {
+  try{
   const { phone_no, password} = req.body;
   console.log(`phone_no: ${phone_no}`);
   console.log(`password is : ${password}`);
@@ -154,21 +162,28 @@ const login = async(req, res) => {
   }else{
     res.status(404).json({ message: `Invalid password`})
   }
+}catch(err){
+  console.log("Error in login", err);
+  return res.status(500).json({ error: 'Something went wrong.' });
+}
   
 }
 
 const logout = async(req, res) => {
-  // const { phone_no } = req.body;
-  // console.log(`phone_no: ${phone_no}`);
-  // const updateDb = `
-  //   UPDATE users
-  //   SET login_status = $1
-  //   WHERE phone_no = $2
-  // `;
-  // await db.query(updateDb, ['N', phone_no]);
-  // await db.query("UPDATE users SET login_status = $1 WHERE phone_no = $2", [false, phone_no]);
-  res.render("login.ejs");
-  // res.status(200).json({ message: `logout successful`})
+  try {
+    req.session.destroy((err) => {
+        if (err) {
+            console.log("Error destroying session:", err);
+            return res.status(500).send("Could not log out. Please try again.");
+        }
+        res.clearCookie("connect.sid"); // Clear the session cookie
+        res.status(200).send("Logout successful");
+    });
+} catch (err) {
+    console.log("Error in logout controller:", err);
+    res.status(500).send("An error occurred.");
+}
+ 
 }
 
-export { register, sendOTP, verifyOTP, login, logout };
+export { register, sendOTP, verifyOTP, login, logout, db };
