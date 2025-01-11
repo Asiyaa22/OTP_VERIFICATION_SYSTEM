@@ -71,51 +71,61 @@ const verifyOTP = async(req, res) => {
   try{
     
   //user ke pass se otp lena
-  const { userOTP } = req.body;
+  const { phone_no, userOTP } = req.body;
 
   //Debug otp and mobile no
-  // console.log(`users No. ${phone_no}`);
+  console.log(`users No. ${phone_no}`);
   console.log(`users OTP. ${userOTP}`);
 
-  // const user = await db.query("SELECT * FROM users WHERE phone_no = $1", [phone_no]);
-  
-  const user = await db.query("SELECT * FROM users WHERE otp = $1", [otp]);
+  const user = await db.query("SELECT * FROM users WHERE phone_no = $1", [phone_no]);
+  console.log("checking otp in database");
+  console.log("main jaarun catch block me!")
+  // const user = await db.query("SELECT * FROM users WHERE otp = $1", [otp]);
 
-  // console.log("retreiveing data from database")
-  // console.log(`user data: ${user}`);
-
-  const userDbData = user.rows[0];
-  console.log(`userDbData: ${userDbData}`);
-  if(!userDbData){
+  console.log("retreiveing data from database")
+  // console.log(`user data: ${JSON.stringify(user)}`);
+  if(!user || user.rows.length === 0){
     console.log("user not found")
-    return res.status(404).json({message: `user is not found`})
+    return res.json({message: `user is not found`})
   }
   
+  //Extracting the user data from the database
+  const userDbData = user.rows[0];
+  // console.log(`userDbData: ${JSON.stringify(userDbData)}`);
+
  //cleaning the stored opt
  console.log(`cleaning the stored otp`);
  const userDbOTP = userDbData.otp;
 
- console.log(`userDbOTP: ${userDbOTP}`);
+ console.log(`userDbOTP: ${JSON.stringify(userDbOTP)}`);
 
  const storedOTP = userDbData.otp.trim();
 // const storedOTP = userDbData?.otp ? userDbData.otp.trim() : null;
 
- console.log(`This is the stored OTP: ${storedOTP}`);
+ console.log(`This is the stored OTP: ${JSON.stringify(storedOTP)}`);
 
  const isMatch = await bcrypt.compare(userOTP, storedOTP)
  if(isMatch){
   console.log(`otp matched`);
-  // res.status(200).json({ message: `otp verified`})
-  res.send("login successful");
+  console.log(`login successful`);
+  const updateDb = `
+    UPDATE users
+    SET login_status = $1
+    WHERE phone_no = $2
+  `;
+  await db.query(updateDb, ['Y', phone_no]);
+  // await db.query("UPDATE users SET login_status = $1 WHERE phone_no = $2", [true, phone_no]);
+  
+  return res.render("home.ejs");;
  }else{
-  res.status(404).json({ message: `Invalid otp`})
+  return res.status(404).json({ message: `Invalid otp`});
  }
 /* The `}catch{}` block in the code snippet provided is attempting to catch any errors that may occur
 during the execution of the `verifyOTP` function. If an error occurs within the `try` block of the
 function, the code inside the `catch` block will be executed. */
 }catch{
-  console.log("error verifying otp")
-  res.status(404).json({ message: `something went wrong`})
+  console.log("error verifying otp");
+  return res.status(404).json({ message: `something went wrong`});
 }
 };
 
@@ -147,4 +157,18 @@ const login = async(req, res) => {
   
 }
 
-export { register, sendOTP, verifyOTP, login };
+const logout = async(req, res) => {
+  // const { phone_no } = req.body;
+  // console.log(`phone_no: ${phone_no}`);
+  // const updateDb = `
+  //   UPDATE users
+  //   SET login_status = $1
+  //   WHERE phone_no = $2
+  // `;
+  // await db.query(updateDb, ['N', phone_no]);
+  // await db.query("UPDATE users SET login_status = $1 WHERE phone_no = $2", [false, phone_no]);
+  res.render("login.ejs");
+  // res.status(200).json({ message: `logout successful`})
+}
+
+export { register, sendOTP, verifyOTP, login, logout };
