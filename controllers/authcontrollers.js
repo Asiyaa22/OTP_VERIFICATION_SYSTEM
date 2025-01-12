@@ -2,6 +2,7 @@ import otpGenerator from "otp-generator";
 import bcrypt from "bcrypt";
 import pg from "pg"
 import env from "dotenv";
+import twilio from "twilio";
 
 env.config();
 const db = new pg.Client({
@@ -13,6 +14,9 @@ const db = new pg.Client({
 });
 db.connect();
 
+const accountSID = process.env.TWILIO_ACC_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = twilio(accountSID, authToken);
 
 //register
 const register = async(req, res) => {
@@ -61,10 +65,28 @@ const sendOTP = async(req, res) => {
       console.log(`otp saved in db: ${saveOTP}`); // Debugging
     }
   })
+  //Twilio
+  const formattedNo = `+91${phone_no}`; 
+  
+  try {
+    await client.messages.create({
+        body: `Your OTP is: ${otp}`,
+        from: process.env.TWILIO_PHONE_NO,
+        to: formattedNo
+    });
+    console.log(`OTP sent to ${phone_no}: ${otp}`);
+    res.render("verify.ejs");
+
+    // res.status(200).json({ message: 'OTP sent successfully!' });
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    res.status(500).json({ message: 'Failed to send OTP.' });
+  }
+
   //sending otp to phone_no
   console.log(`OTP sent to ${phone_no}: ${otp}`)
   // res.status(200).json({ message: `opt sent successfully`})
-  res.render("verify.ejs");
+  // res.render("verify.ejs");
 }
 
 //Verify OTP
